@@ -1,0 +1,46 @@
+/* Scroll Performance Optimizations */
+
+/* Enable hardware acceleration for all elements */
+* {
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+/* Optimize scrolling performance */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Force GPU acceleration for animated elements */
+.parallax-element,
+.floating-element,
+[data-framer-motion] {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Optimize container queries */
+.home-container {
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+/* Optimize background rendering */
+.background-layer {
+  contain: strict;
+  transform: translateZ(0);
+  will-change: transform;
+}

@@ -1,0 +1,266 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Android-style app design */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, 
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  overflow-x: hidden;
+  background-color: #f8fafc;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0f172a;
+  }
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco, Consolas, 
+    'Courier New', monospace;
+}
+
+/* Android-style scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Android-style focus rings */
+.focus-ring:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
+}
+
+/* Material Design elevation shadows */
+.elevation-1 {
+  box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 
+              0px 1px 1px 0px rgba(0,0,0,0.14), 
+              0px 1px 3px 0px rgba(0,0,0,0.12);
+}
+
+.elevation-2 {
+  box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2), 
+              0px 2px 2px 0px rgba(0,0,0,0.14), 
+              0px 1px 5px 0px rgba(0,0,0,0.12);
+}
+
+.elevation-4 {
+  box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 
+              0px 4px 5px 0px rgba(0,0,0,0.14), 
+              0px 1px 10px 0px rgba(0,0,0,0.12);
+}
+
+.elevation-8 {
+  box-shadow: 0px 5px 5px -3px rgba(0,0,0,0.2), 
+              0px 8px 10px 1px rgba(0,0,0,0.14), 
+              0px 3px 14px 2px rgba(0,0,0,0.12);
+}
+
+/* Android ripple effect */
+.ripple {
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+.ripple:after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform .5s, opacity 1s;
+}
+
+.ripple:active:after {
+  transform: scale(0, 0);
+  opacity: .3;
+  transition: 0s;
+}
+
+/* Android button styles */
+.btn-material {
+  @apply px-6 py-3 rounded-lg font-medium text-sm uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  min-width: 64px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-contained {
+  @apply btn-material bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-lg hover:shadow-xl;
+}
+
+.btn-outlined {
+  @apply btn-material border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500;
+}
+
+.btn-text {
+  @apply btn-material text-blue-600 hover:bg-blue-50 focus:ring-blue-500;
+}
+
+/* Android card styles */
+.card-material {
+  @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 transition-all duration-300;
+}
+
+.card-elevated {
+  @apply card-material shadow-lg hover:shadow-xl;
+}
+
+/* Android typography */
+.text-headline-1 {
+  @apply text-6xl font-light tracking-tight;
+}
+
+.text-headline-2 {
+  @apply text-4xl font-light tracking-tight;
+}
+
+.text-headline-3 {
+  @apply text-3xl font-normal;
+}
+
+.text-headline-4 {
+  @apply text-2xl font-normal;
+}
+
+.text-headline-5 {
+  @apply text-xl font-normal;
+}
+
+.text-headline-6 {
+  @apply text-lg font-medium;
+}
+
+.text-subtitle-1 {
+  @apply text-base font-normal;
+}
+
+.text-subtitle-2 {
+  @apply text-sm font-medium;
+}
+
+.text-body-1 {
+  @apply text-base font-normal;
+}
+
+.text-body-2 {
+  @apply text-sm font-normal;
+}
+
+.text-button {
+  @apply text-sm font-medium uppercase tracking-wider;
+}
+
+.text-caption {
+  @apply text-xs font-normal;
+}
+
+.text-overline {
+  @apply text-xs font-medium uppercase tracking-widest;
+}
+
+/* Status bar height for mobile */
+.pt-17 {
+  padding-top: 68px; /* 17 * 4px = 68px for status bar + nav */
+}
+
+/* Safe area insets for mobile devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .pt-17 {
+    padding-top: calc(68px + env(safe-area-inset-top));
+  }
+}
+
+/* Android-style animations */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+  button, 
+  a[role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}

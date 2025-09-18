@@ -1,0 +1,69 @@
+[build]
+  # Build command
+  command = "npm run build"
+  
+  # Directory to publish
+  publish = "dist"
+  
+  # Environment variables for build
+  [build.environment]
+    NODE_VERSION = "18"
+    NPM_FLAGS = "--legacy-peer-deps"
+
+# Redirects for single page application
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for optimization
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Performance headers
+    Cache-Control = "public, max-age=31536000"
+
+# Cache static assets aggressively
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache HTML with shorter duration
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# Optimize images
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Enable gzip compression
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
