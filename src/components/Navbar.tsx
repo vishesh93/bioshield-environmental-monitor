@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, BarChart3, Home, Activity, Menu, X } from 'lucide-react';
+import { Shield, BarChart3, Home, Activity, Menu, X, Radio } from 'lucide-react';
 import { useState } from 'react';
 
 const Navbar = () => {
@@ -10,6 +10,7 @@ const Navbar = () => {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/dashboard', label: 'Dashboard', icon: Activity },
+    { path: '/realtime', label: 'Real-Time', icon: Radio },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   ];
 

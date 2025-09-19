@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BioShield Environmental Monitor</string>
+    <string name="title_activity_main">BioShield Environmental Monitor</string>
+    <string name="package_name">com.bioshield.monitor</string>
+    <string name="custom_url_scheme">com.bioshield.monitor</string>
+</resources>

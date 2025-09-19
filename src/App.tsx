@@ -6,6 +6,8 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
+import FirebaseRealTimePage from './pages/FirebaseRealTimeDashboard';
+import PWAInstall from './components/PWAInstall';
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -106,8 +108,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/realtime" element={<FirebaseRealTimePage />} />
             <Route path="/analytics" element={<Analytics />} />
           </Routes>
+          <PWAInstall />
         </div>
       </Router>
     </ErrorBoundary>
