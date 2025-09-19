@@ -347,9 +347,10 @@ const Home = () => {
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
       if (isLoading) {
+        console.warn('[Home] Loader fallback fired. Forcing content visible.');
         setIsLoading(false);
       }
-    }, 30000); // Max 30 seconds, then show content regardless
+    }, 2000); // Reduce fallback to 2 seconds to avoid long blank screens
     
     return () => clearTimeout(fallbackTimer);
   }, [isLoading]);
@@ -363,6 +364,7 @@ const Home = () => {
   useEffect(() => {
     // Loading will be controlled by the loader component's auto-completion
     // No additional timer needed here
+    console.log('[Home] isLoading:', isLoading);
   }, []);
   
   // Advanced 6-Layer Parallax System
@@ -446,8 +448,8 @@ const Home = () => {
       <LiquidWaveLoader 
         isLoading={isLoading} 
         onComplete={() => setIsLoading(false)}
-        duration={3000}
-        showClickToEnter={true}
+        duration={1100}
+        showClickToEnter={false}
       />
 
       {/* Main Content - Only render when not loading */}
@@ -663,41 +665,12 @@ const Home = () => {
         </RippleEffect>
       </div>
 
-      {/* Flowing Rivers between sections */}
-      <div className="relative h-32 overflow-hidden">
-        <FlowingRivers
-          paths={[
-            {
-              id: 'connection-river',
-              d: 'M0,16 Q200,8 400,16 T800,16',
-              color: 'rgba(59, 130, 246, 0.7)',
-              width: 6,
-              speed: 1,
-              opacity: 0.8
-            },
-            {
-              id: 'secondary-river',
-              d: 'M0,48 Q300,40 600,48 T900,48',
-              color: 'rgba(34, 197, 94, 0.6)',
-              width: 4,
-              speed: 1.3,
-              opacity: 0.6
-            }
-          ]}
-          width={1200}
-          height={128}
-          className="absolute inset-0"
-          showParticles={true}
-          particleCount={15}
-        />
-      </div>
-
       {/* Advanced Stats Section with 3D Effects */}
-      <div className="relative py-32 bg-gradient-to-b from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
+      <div className="relative pt-0 pb-4 bg-gradient-to-b from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
         {/* Floating Bubbles Background */}
         <BubbleFloatAnimation
-          bubbleCount={12}
-          containerHeight={600}
+          bubbleCount={4}
+          containerHeight={200}
           containerWidth={1200}
           className="absolute inset-0"
           direction="up"

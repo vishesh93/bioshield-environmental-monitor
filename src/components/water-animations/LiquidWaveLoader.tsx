@@ -12,7 +12,7 @@ interface LiquidWaveLoaderProps {
 const LiquidWaveLoader: React.FC<LiquidWaveLoaderProps> = ({
   isLoading,
   onComplete,
-  duration = 3000,
+  duration = 1200,
   color = "from-blue-500 to-cyan-400",
   showClickToEnter = true
 }) => {
@@ -62,7 +62,7 @@ const LiquidWaveLoader: React.FC<LiquidWaveLoaderProps> = ({
       setTimeout(() => {
         setShowWaves(false);
         onComplete?.();
-      }, 1200); // Longer transition for scroll up animation
+      }, 300); // Even faster transition to reveal content
     }
   };
 
@@ -94,7 +94,7 @@ const LiquidWaveLoader: React.FC<LiquidWaveLoaderProps> = ({
       }
     };
 
-    if (showWaves && loadingComplete) {
+    if (showWaves && loadingComplete && showClickToEnter) {
       window.addEventListener('wheel', handleScroll, { passive: false });
       window.addEventListener('touchstart', handleTouchStart, { passive: false });
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -105,7 +105,17 @@ const LiquidWaveLoader: React.FC<LiquidWaveLoaderProps> = ({
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [loadingComplete, showWaves]);
+  }, [loadingComplete, showWaves, showClickToEnter]);
+
+  // Auto enter when loading completes and click/scroll prompt is disabled
+  useEffect(() => {
+    if (loadingComplete && !showClickToEnter && showWaves && !isExiting) {
+      // Immediately reveal content to avoid any perceived blank time
+      setIsExiting(true);
+      setShowWaves(false);
+      onComplete?.();
+    }
+  }, [loadingComplete, showClickToEnter, showWaves, isExiting, onComplete]);
 
   // Generate realistic horizontal ocean wave with depth
   const generateHorizontalWave = (yPosition = 50, amplitude = 15, speed = 1, frequency = 0.02, offset = 0) => {
@@ -172,7 +182,7 @@ const LiquidWaveLoader: React.FC<LiquidWaveLoaderProps> = ({
             scale: 0.95
           }}
           transition={{ 
-            duration: isExiting ? 1.2 : 0.6,
+            duration: isExiting ? 0.3 : 0.5,
             ease: isExiting ? [0.23, 1, 0.32, 1] : "easeOut"
           }}
         >

@@ -7,9 +7,43 @@ import 'leaflet/dist/leaflet.css';
 interface MonitoringMapProps {
   stations: MonitoringStation[];
   height?: number;
+  onStationClick?: (station: MonitoringStation) => void;
 }
 
-const MonitoringMap = ({ stations, height = 400 }: MonitoringMapProps) => {
+const MonitoringMap = ({ stations, height = 400, onStationClick }: MonitoringMapProps) => {
+  // Function to calculate station status based on pollutant levels (matching mockData.ts)
+  const calculateStationStatus = (pollutants: {
+    lead: number;
+    mercury: number;
+    cadmium: number;
+    arsenic: number;
+  }): 'safe' | 'caution' | 'danger' => {
+    // Thresholds for each pollutant (in ppm) - matching Dashboard.tsx
+    const thresholds = {
+      lead: { safe: 0.2, caution: 0.5 },
+      mercury: { safe: 0.05, caution: 0.1 },
+      cadmium: { safe: 0.03, caution: 0.06 },
+      arsenic: { safe: 0.05, caution: 0.1 },
+    };
+
+    // Check if ANY pollutant is in danger zone
+    if (pollutants.lead > thresholds.lead.caution ||
+        pollutants.mercury > thresholds.mercury.caution ||
+        pollutants.cadmium > thresholds.cadmium.caution ||
+        pollutants.arsenic > thresholds.arsenic.caution) {
+      return 'danger';
+    }
+
+    // Check if ANY pollutant is in caution zone
+    if (pollutants.lead > thresholds.lead.safe ||
+        pollutants.mercury > thresholds.mercury.safe ||
+        pollutants.cadmium > thresholds.cadmium.safe ||
+        pollutants.arsenic > thresholds.arsenic.safe) {
+      return 'caution';
+    }
+
+    return 'safe';
+  };
   // Create custom markers based on status
   const createCustomIcon = (status: 'safe' | 'caution' | 'danger') => {
     const getColor = () => {
@@ -135,23 +169,132 @@ const MonitoringMap = ({ stations, height = 400 }: MonitoringMapProps) => {
             minZoom={4}
           />
           
-          {stations.map((station) => (
-            <Marker
-              key={station.id}
-              position={station.coordinates}
-              icon={createCustomIcon(station.status)}
-            >
+          {stations.map((station) => {
+            // Debug all stations to identify Prayagraj
+            if (station.name?.toLowerCase().includes('prayagraj') || 
+                station.city?.toLowerCase().includes('prayagraj') ||
+                station.id === 5) {
+              console.log('🔍 INITIAL Prayagraj-related station received:', {
+                id: station.id,
+                name: station.name,
+                city: station.city,
+                state: station.state,
+                coordinates: station.coordinates
+              });
+            }
+            
+            // FORCE CORRECT DATA AT COMPONENT LEVEL - Last line of defense
+            let correctedStation = { ...station };
+            
+            const [lat, lng] = station.coordinates;
+            
+            // Check for Patna coordinates and force correction
+            const patnaDistance = Math.sqrt(Math.pow(lat - 25.5941, 2) + Math.pow(lng - 85.1376, 2));
+            if (patnaDistance < 0.01) {
+              console.log('🚨 COMPONENT-LEVEL PATNA FIX APPLIED for station:', station.id);
+              correctedStation = {
+                ...station,
+                name: 'Ganga - Patna',
+                city: 'Patna',
+                state: 'Bihar'
+              };
+            }
+            
+            // Check for Prayagraj coordinates and force correction
+            const prayagrajDistance = Math.sqrt(Math.pow(lat - 25.4358, 2) + Math.pow(lng - 81.8463, 2));
+            // Debug logging disabled for performance
+            
+            // Check for Prayagraj by coordinates, name, or city (case insensitive)
+            const isPrayagrajStation = prayagrajDistance < 0.01 || 
+                                     station.name?.toLowerCase().includes('prayagraj') || 
+                                     station.city?.toLowerCase().includes('prayagraj') ||
+                                     station.name?.toLowerCase() === 'prayagraj' ||
+                                     station.name?.toLowerCase() === 'allahabad';
+            
+            if (isPrayagrajStation) {
+              console.log('🚨 COMPONENT-LEVEL PRAYAGRAJ FIX APPLIED for station:', station.id, station.name);
+              correctedStation = {
+                ...station,
+                name: 'Ganga - Prayagraj',
+                city: 'Prayagraj',
+                state: 'Uttar Pradesh'
+              };
+            }
+            
+            // Calculate the actual status based on pollutant levels
+            const actualStatus = calculateStationStatus(correctedStation.pollutants);
+            correctedStation.status = actualStatus;
+            
+            // Status calculation complete (debug logging disabled for performance)
+            
+            // Additional fallback for any station with Prayagraj in the name but missing proper state
+            if ((correctedStation.name?.toLowerCase().includes('prayagraj') || 
+                 correctedStation.city?.toLowerCase().includes('prayagraj') ||
+                 correctedStation.name?.toLowerCase().includes('allahabad') ||
+                 correctedStation.city?.toLowerCase().includes('allahabad')) &&
+                (!correctedStation.state || correctedStation.state === 'Unknown State' || correctedStation.state.toLowerCase() === 'unknown state')) {
+              console.log('🔧 FALLBACK: Fixing state for Prayagraj/Allahabad station with missing/incorrect state');
+              correctedStation = {
+                ...correctedStation,
+                state: 'Uttar Pradesh',
+                city: correctedStation.city?.toLowerCase().includes('allahabad') ? 'Prayagraj' : (correctedStation.city || 'Prayagraj'),
+                name: correctedStation.name?.toLowerCase().includes('allahabad') ? 'Ganga - Prayagraj' : correctedStation.name
+              };
+            }
+            
+            // Debug logging
+            if (correctedStation.name?.toLowerCase().includes('patna') || correctedStation.city?.toLowerCase().includes('patna')) {
+              console.log('🔍 Final Patna Station Data:', correctedStation);
+            }
+            if (correctedStation.name?.toLowerCase().includes('prayagraj') || 
+                correctedStation.city?.toLowerCase().includes('prayagraj') ||
+                station.name?.toLowerCase().includes('prayagraj') ||
+                station.city?.toLowerCase().includes('prayagraj')) {
+              console.log('🔍 Final Prayagraj Station Data:', {
+                id: correctedStation.id,
+                name: correctedStation.name,
+                city: correctedStation.city,
+                state: correctedStation.state,
+                coordinates: correctedStation.coordinates,
+                originalStation: {
+                  name: station.name,
+                  city: station.city,
+                  state: station.state
+                }
+              });
+            }
+            
+            return (
+              <Marker
+                key={correctedStation.id}
+                position={correctedStation.coordinates}
+                icon={createCustomIcon(correctedStation.status)}
+                eventHandlers={{
+                  click: () => {
+                    console.log('🖱️ Station clicked:', {
+                      id: correctedStation.id,
+                      name: correctedStation.name,
+                      city: correctedStation.city,
+                      state: correctedStation.state,
+                      coordinates: correctedStation.coordinates
+                    });
+                    if (onStationClick) {
+                      onStationClick(correctedStation);
+                    }
+                  }
+                }}
+              >
               <Popup className="custom-popup">
-                <div className={`p-4 rounded-lg border-2 ${getStatusBg(station.status)} min-w-64 shadow-2xl`}>
+                <div className={`p-4 rounded-lg border-2 ${getStatusBg(correctedStation.status)} min-w-64 shadow-2xl`}>
                   <div className="mb-3">
                     <h4 className="font-bold text-white text-lg mb-1 drop-shadow-sm">
-                      {station.name}
+                      {correctedStation.name}
                     </h4>
                     <p className="text-gray-100 text-sm">
-                      {station.city}, {station.state}
+                      {correctedStation.city || 'Unknown City'}, {correctedStation.state || 'Unknown State'}
                     </p>
                     <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase bg-black/30 text-white border border-current`}>
-                      {station.status}
+                      {correctedStation.status}
                     </span>
                   </div>
                   
@@ -161,25 +304,25 @@ const MonitoringMap = ({ stations, height = 400 }: MonitoringMapProps) => {
                       <div className="bg-black/30 border border-white/10 p-2 rounded">
                         <span className="text-gray-200">Lead:</span>
                         <span className="text-white font-bold ml-1">
-                          {station.pollutants.lead.toFixed(2)}
+                          {correctedStation.pollutants.lead.toFixed(2)}
                         </span>
                       </div>
                       <div className="bg-black/30 border border-white/10 p-2 rounded">
                         <span className="text-gray-200">Mercury:</span>
                         <span className="text-white font-bold ml-1">
-                          {station.pollutants.mercury.toFixed(2)}
+                          {correctedStation.pollutants.mercury.toFixed(2)}
                         </span>
                       </div>
                       <div className="bg-black/30 border border-white/10 p-2 rounded">
                         <span className="text-gray-200">Cadmium:</span>
                         <span className="text-white font-bold ml-1">
-                          {station.pollutants.cadmium.toFixed(2)}
+                          {correctedStation.pollutants.cadmium.toFixed(2)}
                         </span>
                       </div>
                       <div className="bg-black/30 border border-white/10 p-2 rounded">
                         <span className="text-gray-200">Arsenic:</span>
                         <span className="text-white font-bold ml-1">
-                          {station.pollutants.arsenic.toFixed(2)}
+                          {correctedStation.pollutants.arsenic.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -187,13 +330,14 @@ const MonitoringMap = ({ stations, height = 400 }: MonitoringMapProps) => {
                   
                   <div className="mt-3 pt-3 border-t border-white/20">
                     <p className="text-gray-200 text-xs">
-                      Last updated: {station.lastUpdated.toLocaleTimeString()}
+                      Last updated: {correctedStation.lastUpdated.toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
               </Popup>
             </Marker>
-          ))}
+            );
+          })}
         </MapContainer>
       </div>
     </motion.div>

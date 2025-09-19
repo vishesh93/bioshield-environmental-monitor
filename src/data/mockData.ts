@@ -35,99 +35,198 @@ export interface Alert {
 }
 
 // Top 5 monitoring stations for consistent dashboard display
+// Static timestamp to prevent constant updates
+const STATIC_TIMESTAMP = new Date('2024-01-15T10:30:00Z');
+
+// Function to calculate station status based on pollutant levels
+const calculateStationStatus = (pollutants: {
+  lead: number;
+  mercury: number;
+  cadmium: number;
+  arsenic: number;
+}): 'safe' | 'caution' | 'danger' => {
+  // Thresholds for each pollutant (in ppm) - matching Dashboard.tsx
+  const thresholds = {
+    lead: { safe: 0.2, caution: 0.5 },
+    mercury: { safe: 0.05, caution: 0.1 },
+    cadmium: { safe: 0.03, caution: 0.06 },
+    arsenic: { safe: 0.05, caution: 0.1 },
+  };
+
+  // Check if ANY pollutant is in danger zone
+  if (pollutants.lead > thresholds.lead.caution ||
+      pollutants.mercury > thresholds.mercury.caution ||
+      pollutants.cadmium > thresholds.cadmium.caution ||
+      pollutants.arsenic > thresholds.arsenic.caution) {
+    return 'danger';
+  }
+
+  // Check if ANY pollutant is in caution zone
+  if (pollutants.lead > thresholds.lead.safe ||
+      pollutants.mercury > thresholds.mercury.safe ||
+      pollutants.cadmium > thresholds.cadmium.safe ||
+      pollutants.arsenic > thresholds.arsenic.safe) {
+    return 'caution';
+  }
+
+  return 'safe';
+};
+
+console.log('🔄 LOADING UPDATED MOCK DATA - Station changes should be visible now!');
+
 export const monitoringStations: MonitoringStation[] = [
   {
     id: 1,
-    name: 'Yamuna River - Delhi',
-    city: 'Delhi',
-    state: 'Delhi',
-    coordinates: [28.6139, 77.2090],
-    status: 'danger',
+    name: 'Ganga - Haridwar',
+    lat: 29.9457,
+    lng: 78.1642,
+    description: 'Ganga river monitoring station in Haridwar',
+    created_at: STATIC_TIMESTAMP.toISOString(),
+    city: 'Haridwar',
+    state: 'Uttarakhand',
+    coordinates: [29.9457, 78.1642],
     pollutants: {
-      lead: 0.85, // ppm
-      mercury: 0.12,
-      cadmium: 0.08,
-      arsenic: 0.15
+      lead: 0.12, // SAFE LEVEL (≤ 0.2)
+      mercury: 0.03, // SAFE LEVEL (≤ 0.05)
+      cadmium: 0.015, // SAFE LEVEL (≤ 0.03)
+      arsenic: 0.035 // SAFE LEVEL (≤ 0.05)
     },
-    lastUpdated: new Date()
+    get status() {
+      return calculateStationStatus(this.pollutants);
+    },
+    lastUpdated: STATIC_TIMESTAMP
   },
   {
     id: 2,
-    name: 'Ganges - Varanasi',
-    city: 'Varanasi',
-    state: 'Uttar Pradesh',
-    coordinates: [25.3176, 82.9739],
-    status: 'caution',
-    pollutants: {
-      lead: 0.25,
-      mercury: 0.08,
-      cadmium: 0.04,
-      arsenic: 0.07
-    },
-    lastUpdated: new Date()
-  },
-  {
-    id: 3,
-    name: 'Hooghly River - Kolkata',
+    name: 'Hooghly - Kolkata',
+    lat: 22.5726,
+    lng: 88.3639,
+    description: 'Hooghly river monitoring station in Kolkata',
+    created_at: STATIC_TIMESTAMP.toISOString(),
     city: 'Kolkata',
     state: 'West Bengal',
     coordinates: [22.5726, 88.3639],
-    status: 'caution',
     pollutants: {
-      lead: 0.35,
-      mercury: 0.06,
-      cadmium: 0.05,
-      arsenic: 0.09
+      lead: 0.42, // CAUTION LEVEL (0.2 < x ≤ 0.5)
+      mercury: 0.09, // CAUTION LEVEL (0.05 < x ≤ 0.1)
+      cadmium: 0.05, // CAUTION LEVEL (0.03 < x ≤ 0.06)
+      arsenic: 0.08 // CAUTION LEVEL (0.05 < x ≤ 0.1)
     },
-    lastUpdated: new Date()
+    get status() {
+      return calculateStationStatus(this.pollutants);
+    },
+    lastUpdated: STATIC_TIMESTAMP
+  },
+  {
+    id: 3,
+    name: 'Yamuna - New Delhi',
+    lat: 28.7135,
+    lng: 77.2234,
+    description: 'Yamuna river monitoring station in New Delhi',
+    created_at: STATIC_TIMESTAMP.toISOString(),
+    city: 'New Delhi',
+    state: 'Delhi',
+    coordinates: [28.7135, 77.2234],
+    pollutants: {
+      lead: 0.75, // DANGER LEVEL (>0.5)
+      mercury: 0.13, // DANGER LEVEL (>0.1)
+      cadmium: 0.09, // DANGER LEVEL (>0.06)
+      arsenic: 0.12 // DANGER LEVEL (>0.1)
+    },
+    get status() {
+      return calculateStationStatus(this.pollutants);
+    },
+    lastUpdated: STATIC_TIMESTAMP
   },
   {
     id: 4,
-    name: 'Godavari River - Nashik',
+    name: 'Godavari - Nashik',
+    lat: 19.9975,
+    lng: 73.7898,
+    description: 'Godavari river monitoring station in Nashik',
+    created_at: STATIC_TIMESTAMP.toISOString(),
     city: 'Nashik',
     state: 'Maharashtra',
     coordinates: [19.9975, 73.7898],
-    status: 'safe',
     pollutants: {
-      lead: 0.12,
-      mercury: 0.02,
-      cadmium: 0.01,
-      arsenic: 0.03
+      lead: 0.15, // SAFE LEVEL (≤ 0.2)
+      mercury: 0.03, // SAFE LEVEL (≤ 0.05)
+      cadmium: 0.02, // SAFE LEVEL (≤ 0.03)
+      arsenic: 0.04 // SAFE LEVEL (≤ 0.05)
     },
-    lastUpdated: new Date()
+    get status() {
+      return calculateStationStatus(this.pollutants);
+    },
+    lastUpdated: STATIC_TIMESTAMP
   },
   {
     id: 5,
-    name: 'Kaveri River - Bangalore',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    coordinates: [12.9716, 77.5946],
-    status: 'safe',
+    name: 'Ganga - Patna',
+    lat: 25.5941,
+    lng: 85.1376,
+    description: 'Ganga river monitoring station in Patna',
+    created_at: STATIC_TIMESTAMP.toISOString(),
+    city: 'Patna',
+    state: 'Bihar',
+    coordinates: [25.5941, 85.1376],
     pollutants: {
-      lead: 0.18,
-      mercury: 0.03,
-      cadmium: 0.02,
-      arsenic: 0.04
+      lead: 0.35, // CAUTION LEVEL (0.2 < x ≤ 0.5)
+      mercury: 0.07, // CAUTION LEVEL (0.05 < x ≤ 0.1)
+      cadmium: 0.04, // CAUTION LEVEL (0.03 < x ≤ 0.06)
+      arsenic: 0.08 // CAUTION LEVEL (0.05 < x ≤ 0.1)
     },
-    lastUpdated: new Date()
+    get status() {
+      return calculateStationStatus(this.pollutants);
+    },
+    lastUpdated: STATIC_TIMESTAMP
+  },
+  {
+    id: 6,
+    name: 'Ganga - Prayagraj',
+    lat: 25.4358,
+    lng: 81.8463,
+    description: 'Ganga river monitoring station in Prayagraj (formerly Allahabad)',
+    created_at: STATIC_TIMESTAMP.toISOString(),
+    city: 'Prayagraj',
+    state: 'Uttar Pradesh',
+    coordinates: [25.4358, 81.8463],
+    pollutants: {
+      lead: 0.25, // CAUTION LEVEL (0.2 < x ≤ 0.5)
+      mercury: 0.08, // CAUTION LEVEL (0.05 < x ≤ 0.1)
+      cadmium: 0.04, // CAUTION LEVEL (0.03 < x ≤ 0.06)
+      arsenic: 0.07 // CAUTION LEVEL (0.05 < x ≤ 0.1)
+    },
+    get status() {
+      return calculateStationStatus(this.pollutants);
+    },
+    lastUpdated: STATIC_TIMESTAMP
   }
 ];
 
-// Generate time series data for the last 30 days
+// Simple deterministic pseudo-random function based on seed
+const seededRandom = (seed: number): number => {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+// Generate STATIC time series data for the last 30 days - NEVER CHANGES
 export const generateTimeSeriesData = (): TimeSeriesData[] => {
   const data: TimeSeriesData[] = [];
-  const now = new Date();
+  const baseDate = new Date('2024-01-15'); // Fixed reference date
   
   for (let i = 29; i >= 0; i--) {
-    const date = new Date(now);
+    const date = new Date(baseDate);
     date.setDate(date.getDate() - i);
+    
+    // Use deterministic "random" values based on day index
+    const seed = i * 1000; // Unique seed for each day
     
     data.push({
       timestamp: date.toISOString().split('T')[0],
-      lead: 0.2 + Math.random() * 0.6,
-      mercury: 0.01 + Math.random() * 0.1,
-      cadmium: 0.005 + Math.random() * 0.06,
-      arsenic: 0.02 + Math.random() * 0.12
+      lead: 0.2 + seededRandom(seed + 1) * 0.6,
+      mercury: 0.01 + seededRandom(seed + 2) * 0.1,
+      cadmium: 0.005 + seededRandom(seed + 3) * 0.06,
+      arsenic: 0.02 + seededRandom(seed + 4) * 0.12
     });
   }
   
@@ -136,7 +235,7 @@ export const generateTimeSeriesData = (): TimeSeriesData[] => {
 
 export const mockAlerts: Alert[] = [
   {
-    id: 1,
+    id: 'mock-1',
     stationId: '1',
     stationName: 'Yamuna River - Delhi',
     type: 'critical',
@@ -145,7 +244,7 @@ export const mockAlerts: Alert[] = [
     acknowledged: false
   },
   {
-    id: 2,
+    id: 'mock-2',
     stationId: '3',
     stationName: 'Hooghly River - Kolkata',
     type: 'critical',
@@ -154,7 +253,7 @@ export const mockAlerts: Alert[] = [
     acknowledged: false
   },
   {
-    id: 3,
+    id: 'mock-3',
     stationId: '2',
     stationName: 'Ganges - Varanasi',
     type: 'warning',
@@ -163,7 +262,7 @@ export const mockAlerts: Alert[] = [
     acknowledged: true
   },
   {
-    id: 4,
+    id: 'mock-4',
     stationId: '5',
     stationName: 'Kaveri River - Bangalore',
     type: 'warning',
@@ -173,24 +272,26 @@ export const mockAlerts: Alert[] = [
   }
 ];
 
-// Historical data for analytics
+// Historical data for analytics - STATIC, NEVER CHANGES
 export const generateHistoricalData = (stationId: string, days: number = 90): TimeSeriesData[] => {
   const data: TimeSeriesData[] = [];
-  const now = new Date();
+  const baseDate = new Date('2024-01-15'); // Fixed reference date
   
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now);
+    const date = new Date(baseDate);
     date.setDate(date.getDate() - i);
     
-    // Add some variation based on station (Delhi and Kolkata have higher pollution)
+    // Add deterministic variation based on station and day
     const baseMultiplier = stationId === '1' || stationId === '3' ? 2.5 : 1;
+    const stationSeed = parseInt(stationId) * 1000;
+    const daySeed = i;
     
     data.push({
       timestamp: date.toISOString().split('T')[0],
-      lead: (0.1 + Math.random() * 0.4) * baseMultiplier,
-      mercury: (0.01 + Math.random() * 0.08) * baseMultiplier,
-      cadmium: (0.005 + Math.random() * 0.04) * baseMultiplier,
-      arsenic: (0.02 + Math.random() * 0.1) * baseMultiplier
+      lead: (0.1 + seededRandom(stationSeed + daySeed + 1) * 0.4) * baseMultiplier,
+      mercury: (0.01 + seededRandom(stationSeed + daySeed + 2) * 0.08) * baseMultiplier,
+      cadmium: (0.005 + seededRandom(stationSeed + daySeed + 3) * 0.04) * baseMultiplier,
+      arsenic: (0.02 + seededRandom(stationSeed + daySeed + 4) * 0.1) * baseMultiplier
     });
   }
   

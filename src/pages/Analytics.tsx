@@ -40,8 +40,19 @@ const Analytics = () => {
     return new Date().toISOString().split('T')[0];
   });
 
-  // Fetch real stations data
+  // Use mock data directly to match Dashboard station names
   useEffect(() => {
+    console.log('📊 Analytics: Using mock data with correct station names');
+    console.log('🔍 Mock stations for analytics:', monitoringStations.map(s => ({ id: s.id, name: s.name })));
+    
+    setStations(monitoringStations);
+    // Select first 4 stations by default
+    const defaultStationIds = monitoringStations.slice(0, 4).map(s => s.id);
+    setSelectedStations(defaultStationIds);
+    console.log('✅ Analytics stations selected:', defaultStationIds);
+    
+    // Temporarily disable DataService fetching to ensure we use mock data
+    /*
     async function fetchStations() {
       try {
         const realStations = await DataService.getStationsWithData();
@@ -72,15 +83,23 @@ const Analytics = () => {
       }
     }
     fetchStations();
+    */
   }, []);
 
-  // Generate comparison data for selected stations
+  // Simple deterministic pseudo-random function
+  const seededRandom = (seed: number): number => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+
+  // Generate comparison data for selected stations - STATIC HISTORICAL DATA
   const comparisonData = useMemo(() => {
     const days = 30;
     const data: any[] = [];
+    const baseDate = new Date('2024-01-15'); // Fixed reference date for consistency
 
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
+      const date = new Date(baseDate);
       date.setDate(date.getDate() - i);
       const timestamp = date.toISOString().split('T')[0];
 
@@ -89,11 +108,12 @@ const Analytics = () => {
       selectedStations.forEach(stationId => {
         const station = stations.find(s => s.id === stationId);
         if (station) {
-          // Generate realistic historical data with variation
+          // Generate STATIC deterministic historical data
           const baseValue = station.pollutants[selectedPollutant];
-          const variation = (Math.random() - 0.5) * 0.3 * Math.max(baseValue, 0.01); // Ensure minimum value
-          const trend = Math.sin((i / days) * Math.PI) * 0.1 * Math.max(baseValue, 0.01);
-          dataPoint[station.name] = Math.max(0.001, baseValue + variation + trend); // Ensure minimum value
+          const seed = stationId * 1000 + i; // Unique seed per station per day
+          const variation = seededRandom(seed) * 0.3 - 0.15; // ±15% variation
+          const seasonalPattern = Math.sin((i / days) * 2 * Math.PI) * 0.1; // Seasonal
+          dataPoint[station.name] = Math.max(0.001, baseValue * (1 + variation + seasonalPattern));
         }
       });
 
@@ -196,28 +216,61 @@ const Analytics = () => {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       
-      // Generate realistic historical data with some variation
+      // Generate STATIC deterministic historical data - NEVER CHANGES
       const baseValues = station.pollutants;
-      const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
-      const seasonalFactor = 1 + 0.1 * Math.sin((i / 90) * 2 * Math.PI); // Seasonal variation
+      const referenceDate = new Date('2024-01-01');
+      const daysSinceReference = Math.floor((date.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Create unique seeds for each pollutant and day
+      const leadSeed = station.id * 100000 + daysSinceReference + 1;
+      const mercurySeed = station.id * 100000 + daysSinceReference + 2;
+      const cadmiumSeed = station.id * 100000 + daysSinceReference + 3;
+      const arsenicSeed = station.id * 100000 + daysSinceReference + 4;
+      
+      // Generate deterministic variations
+      const leadVariation = seededRandom(leadSeed) * 0.3 - 0.15; // ±15%
+      const mercuryVariation = seededRandom(mercurySeed) * 0.3 - 0.15;
+      const cadmiumVariation = seededRandom(cadmiumSeed) * 0.3 - 0.15;
+      const arsenicVariation = seededRandom(arsenicSeed) * 0.3 - 0.15;
+      
+      // Add seasonal patterns
+      const seasonalFactor = Math.sin((daysSinceReference / 365) * 2 * Math.PI) * 0.1;
       
       data.push({
         timestamp: date.toISOString(),
-        lead: Math.max(0.001, baseValues.lead * (1 + variation) * seasonalFactor),
-        mercury: Math.max(0.001, baseValues.mercury * (1 + variation) * seasonalFactor),
-        cadmium: Math.max(0.001, baseValues.cadmium * (1 + variation) * seasonalFactor),
-        arsenic: Math.max(0.001, baseValues.arsenic * (1 + variation) * seasonalFactor),
+        lead: Math.max(0.001, baseValues.lead * (1 + leadVariation + seasonalFactor)),
+        mercury: Math.max(0.001, baseValues.mercury * (1 + mercuryVariation + seasonalFactor)),
+        cadmium: Math.max(0.001, baseValues.cadmium * (1 + cadmiumVariation + seasonalFactor)),
+        arsenic: Math.max(0.001, baseValues.arsenic * (1 + arsenicVariation + seasonalFactor)),
       });
     }
     
     return data;
+  }, [selectedStations, stations, seededRandom]);
+
+  const selectedStationName = useMemo(() => {
+    if (selectedStations.length === 0) return 'No Station Selected';
+    
+    const station = stations.find(s => s.id === selectedStations[0]);
+    if (!station) return 'Unknown Station';
+    
+    // Apply same correction logic as Dashboard for consistency
+    if (station.coordinates && station.coordinates.length >= 2) {
+      const [lat, lng] = station.coordinates;
+      const prayagrajDistance = Math.sqrt(Math.pow(lat - 25.4358, 2) + Math.pow(lng - 81.8463, 2));
+      if (prayagrajDistance < 0.01 || station.name.toLowerCase().includes('prayagraj')) {
+        return 'Ganga - Prayagraj';
+      }
+      const patnaDistance = Math.sqrt(Math.pow(lat - 25.5941, 2) + Math.pow(lng - 85.1376, 2));
+      if (patnaDistance < 0.01 || station.name.toLowerCase().includes('patna')) {
+        return 'Ganga - Patna';
+      }
+    }
+    
+    return station.name || 'Unknown Station';
   }, [selectedStations, stations]);
 
-  const selectedStationName = selectedStations.length > 0 
-    ? stations.find(s => s.id === selectedStations[0])?.name || 'Unknown Station'
-    : 'No Station Selected';
-
-  // Generate date-filtered data for selected date range
+  // Generate date-filtered data for selected date range - STATIC HISTORICAL DATA
   const dateFilteredData = useMemo(() => {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -225,11 +278,15 @@ const Analytics = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
     const data: any[] = [];
+    const referenceDate = new Date('2024-01-01'); // Fixed reference for deterministic calculation
     
     for (let i = 0; i < diffDays; i++) {
       const date = new Date(start);
       date.setDate(date.getDate() + i);
       const timestamp = date.toISOString().split('T')[0];
+      
+      // Calculate days from reference date for consistent seeding
+      const daysSinceReference = Math.floor((date.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24));
       
       const dataPoint: any = { 
         timestamp,
@@ -239,11 +296,13 @@ const Analytics = () => {
       selectedStations.forEach(stationId => {
         const station = stations.find(s => s.id === stationId);
         if (station) {
-          // Generate realistic data with some variation
+          // Generate STATIC deterministic data based on actual date
           const baseValue = station.pollutants[selectedPollutant];
-          const variation = (Math.random() - 0.5) * 0.2 * Math.max(baseValue, 0.01);
-          const seasonalFactor = 1 + 0.1 * Math.sin((i / diffDays) * 2 * Math.PI);
-          dataPoint[station.name] = Math.max(0.001, (baseValue + variation) * seasonalFactor);
+          const seed = stationId * 10000 + daysSinceReference;
+          const variation = seededRandom(seed) * 0.2 - 0.1; // ±10% variation
+          const seasonalPattern = Math.sin((daysSinceReference / 365) * 2 * Math.PI) * 0.1; // Yearly cycle
+          const weeklyPattern = Math.sin((daysSinceReference / 7) * 2 * Math.PI) * 0.05; // Weekly cycle
+          dataPoint[station.name] = Math.max(0.001, baseValue * (1 + variation + seasonalPattern + weeklyPattern));
         }
       });
       
@@ -251,7 +310,7 @@ const Analytics = () => {
     }
     
     return data;
-  }, [selectedStations, selectedPollutant, startDate, endDate, stations]);
+  }, [selectedStations, selectedPollutant, startDate, endDate, stations, seededRandom]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-17">

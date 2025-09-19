@@ -10,18 +10,31 @@ import {
   monitoringStations, 
   generateTimeSeriesData, 
   mockAlerts,
-  Alert 
+  Alert,
+  MonitoringStation 
 } from '../data/mockData';
 
 const Dashboard = () => {
   const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
-  const [stations, setStations] = useState(monitoringStations);
+  const [stations, setStations] = useState<MonitoringStation[]>([]);
   const [timeSeriesData, setTimeSeriesData] = useState(generateTimeSeriesData());
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [selectedStation, setSelectedStation] = useState<MonitoringStation | null>(null);
 
   useEffect(() => {
     async function fetchData() {
+      // FORCE USE OF MOCK DATA - Skip Supabase for now
+      console.log('🌐 Using updated mock data directly');
+      console.log('🔍 Mock stations count:', monitoringStations.length);
+      console.log('🔍 Mock stations:', monitoringStations.map(s => ({ id: s.id, name: s.name, status: s.status })));
+      
+      setStations(monitoringStations);
+      setIsLoading(false);
+      setLastUpdated(new Date());
+      
+      // Temporarily disable Supabase data fetching
+      /*
       try {
         console.log('🔄 Fetching real data from Supabase...');
         const [realStations, realAlerts, realTimeSeries] = await Promise.all([
@@ -30,9 +43,13 @@ const Dashboard = () => {
           DataService.getTimeSeriesData()
         ]);
 
+        console.log('✅ Real stations loaded:', realStations);
+        console.log('🔍 Station count:', realStations.length);
         if (realStations.length > 0) {
-          console.log('✅ Real stations loaded:', realStations);
           setStations(realStations);
+        } else {
+          console.log('⚠️ No real stations found, will use mock data');
+          setStations(monitoringStations);
         }
 
         if (realTimeSeries.length > 0) {
@@ -57,25 +74,25 @@ const Dashboard = () => {
       } catch (error) {
         console.error("❌ Error fetching data:", error);
         console.log("ℹ️ Using mock data as fallback");
-      } finally {
-        setIsLoading(false);
-        setLastUpdated(new Date());
+        setStations(monitoringStations);
       }
+      */
     }
     
     fetchData();
     
-    // Set up real-time updates every 5 seconds
-    const interval = setInterval(() => {
-      console.log('🔄 Updating data in real-time...');
-      fetchData();
-    }, 5000); // Update every 5 seconds
-    
-    // Cleanup interval on component unmount
-    return () => clearInterval(interval);
+    // Real-time updates disabled to prevent constant re-rendering
+    // Uncomment below for real-time updates in production:
+    // const interval = setInterval(() => {
+    //   console.log('🔄 Updating data in real-time...');
+    //   fetchData();
+    // }, 30000); // Update every 30 seconds
+    // 
+    // return () => clearInterval(interval);
   }, []);
   
-  // Generate alerts whenever stations change
+  // Generate alerts whenever stations change - TEMPORARILY DISABLED
+  /*
   useEffect(() => {
     async function generateAlerts() {
       if (stations.length > 0) {
@@ -84,8 +101,8 @@ const Dashboard = () => {
         console.log('✅ Generated alerts:', generatedAlerts);
         
         if (generatedAlerts.length > 0) {
-          const uiAlerts = generatedAlerts.map(alert => ({
-            id: alert.id.toString(),
+          const uiAlerts = generatedAlerts.map((alert, index) => ({
+            id: `db-${alert.id}-${Date.now()}-${index}`, // Ensure unique IDs
             stationId: alert.station_id.toString(),
             stationName: stations.find(s => s.id === alert.station_id)?.name || 'Unknown Station',
             type: alert.severity === 'high' ? 'critical' as const : 'warning' as const,
@@ -106,9 +123,20 @@ const Dashboard = () => {
     
     generateAlerts();
   }, [stations]);
+  */
   
-  // Calculate overall pollution metrics from all stations
-  const overallMetrics = useMemo(() => {
+  // Calculate pollution metrics - use selected station if available, otherwise overall average
+  const displayMetrics = useMemo(() => {
+    if (selectedStation) {
+      return {
+        lead: selectedStation.pollutants.lead,
+        mercury: selectedStation.pollutants.mercury,
+        cadmium: selectedStation.pollutants.cadmium,
+        arsenic: selectedStation.pollutants.arsenic,
+      };
+    }
+
+    // Calculate overall pollution metrics from all stations
     const totals = stations.reduce(
       (acc, station) => ({
         lead: acc.lead + station.pollutants.lead,
@@ -126,24 +154,32 @@ const Dashboard = () => {
       cadmium: totals.cadmium / count,
       arsenic: totals.arsenic / count,
     };
-  }, [stations]);
+  }, [stations, selectedStation]);
   
-  // Calculate water quality metrics separately
+  // Calculate water quality metrics separately - using static values to prevent constant updates
   const waterQualityMetrics = useMemo(() => {
+    if (stations.length === 0) {
+      return { ph: 7.2, tds: 350 };
+    }
+    
+    // Use station-based deterministic values instead of random
     const totals = stations.reduce(
-      (acc, station) => ({
-        // Generate realistic water quality data based on pollution levels
-        ph: acc.ph + (7.0 + (Math.random() - 0.5) * 2), // pH 6-8 range
-        turbidity: acc.turbidity + (5 + Math.random() * 15), // 5-20 NTU range
-        tds: acc.tds + (200 + Math.random() * 300), // 200-500 mg/L range
-      }),
-      { ph: 0, turbidity: 0, tds: 0 }
+      (acc, station, index) => {
+        // Generate deterministic values based on station ID and pollutant levels
+        const pollutionFactor = (station.pollutants.lead + station.pollutants.mercury + station.pollutants.cadmium + station.pollutants.arsenic) / 4;
+        const stationFactor = (index + 1) * 0.1; // Deterministic variation based on station order
+        
+        return {
+          ph: acc.ph + (7.0 + pollutionFactor * 2 - 1 + stationFactor), // pH 6-8 range based on pollution
+          tds: acc.tds + (200 + pollutionFactor * 300 + stationFactor * 50), // 200-500 mg/L range
+        };
+      },
+      { ph: 0, tds: 0 }
     );
 
-    const count = stations.length || 1;
+    const count = stations.length;
     return {
       ph: Math.round((totals.ph / count) * 10) / 10,
-      turbidity: Math.round((totals.turbidity / count) * 10) / 10,
       tds: Math.round(totals.tds / count),
     };
   }, [stations]);
@@ -156,7 +192,7 @@ const Dashboard = () => {
   };
   
   // Determine status for water quality parameters
-  const getWaterQualityStatus = (value: number, parameter: 'ph' | 'turbidity' | 'tds'): 'safe' | 'caution' | 'danger' => {
+  const getWaterQualityStatus = (value: number, parameter: 'ph' | 'tds'): 'safe' | 'caution' | 'danger' => {
     if (parameter === 'ph') {
       const { safe, caution } = waterThresholds.ph;
       if (value >= safe.min && value <= safe.max) return 'safe';
@@ -186,6 +222,55 @@ const Dashboard = () => {
     );
   };
 
+  const handleStationClick = (station: MonitoringStation) => {
+    console.log('🖱️ Dashboard received station click:', station);
+    // Ensure we have proper city and state data for Prayagraj
+    let correctedStation = { ...station };
+    
+    // Force correction for Prayagraj if needed
+    if (station.coordinates && station.coordinates.length >= 2) {
+      const [lat, lng] = station.coordinates;
+      const prayagrajDistance = Math.sqrt(Math.pow(lat - 25.4358, 2) + Math.pow(lng - 81.8463, 2));
+      if (prayagrajDistance < 0.01 || station.name.toLowerCase().includes('prayagraj')) {
+        console.log('🚨 Dashboard-level Prayagraj correction applied');
+        correctedStation = {
+          ...station,
+          name: 'Ganga - Prayagraj',
+          city: 'Prayagraj', 
+          state: 'Uttar Pradesh'
+        };
+      }
+    }
+    
+    // Fallback: if state is still undefined/null, set default based on known cities
+    if (!correctedStation.state || correctedStation.state === 'undefined' || correctedStation.state === 'null' || correctedStation.state === 'Unknown State') {
+      if (correctedStation.city?.toLowerCase().includes('prayagraj') || correctedStation.name?.toLowerCase().includes('prayagraj') ||
+          correctedStation.city?.toLowerCase().includes('allahabad') || correctedStation.name?.toLowerCase().includes('allahabad')) {
+        correctedStation.state = 'Uttar Pradesh';
+        // Also normalize the city name if it's still Allahabad
+        if (correctedStation.city?.toLowerCase().includes('allahabad')) {
+          correctedStation.city = 'Prayagraj';
+        }
+        if (correctedStation.name?.toLowerCase().includes('allahabad')) {
+          correctedStation.name = 'Ganga - Prayagraj';
+        }
+      } else if (correctedStation.city?.toLowerCase().includes('patna')) {
+        correctedStation.state = 'Bihar';
+      } else if (correctedStation.city?.toLowerCase().includes('delhi')) {
+        correctedStation.state = 'Delhi';
+      } else if (correctedStation.city?.toLowerCase().includes('varanasi')) {
+        correctedStation.state = 'Uttar Pradesh';
+      } else if (correctedStation.city?.toLowerCase().includes('nashik')) {
+        correctedStation.state = 'Maharashtra';
+      } else if (correctedStation.city?.toLowerCase().includes('hyderabad')) {
+        correctedStation.state = 'Telangana';
+      }
+    }
+    
+    console.log('✅ Final corrected station data:', correctedStation);
+    setSelectedStation(correctedStation);
+  };
+
   // Define thresholds for each pollutant (in ppm)
   const thresholds = {
     lead: { safe: 0.2, caution: 0.5 },
@@ -197,7 +282,6 @@ const Dashboard = () => {
   // Define thresholds for water quality parameters
   const waterThresholds = {
     ph: { safe: { min: 6.5, max: 8.5 }, caution: { min: 6.0, max: 9.0 } }, // WHO standards
-    turbidity: { safe: 1, caution: 5 }, // NTU (Nephelometric Turbidity Units)
     tds: { safe: 300, caution: 500 }, // mg/L (Total Dissolved Solids)
   };
 
@@ -234,8 +318,24 @@ const Dashboard = () => {
                   Monitoring Dashboard
                 </h1>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Real-time environmental monitoring across India
+                  {selectedStation 
+                    ? `Viewing data for ${selectedStation.name} - ${selectedStation.city || 'Unknown City'}, ${selectedStation.state || 'Unknown State'}`
+                    : 'Real-time environmental monitoring across India'
+                  }
                 </p>
+                {selectedStation && (
+                  <div className="mt-1 text-xs text-gray-400 font-mono">
+                    Debug: ID={selectedStation.id}, Coords=[{selectedStation.coordinates?.[0]?.toFixed(4)}, {selectedStation.coordinates?.[1]?.toFixed(4)}]
+                  </div>
+                )}
+                {selectedStation && (
+                  <button
+                    onClick={() => setSelectedStation(null)}
+                    className="mt-2 px-3 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                  >
+                    View All Stations
+                  </button>
+                )}
                 <div className="flex items-center mt-2 space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -251,36 +351,36 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MonitoringCard
             title="Lead (Pb)"
-            value={overallMetrics.lead}
+            value={displayMetrics.lead}
             unit="ppm"
-            status={getStatus(overallMetrics.lead, thresholds.lead.safe, thresholds.lead.caution)}
+            status={getStatus(displayMetrics.lead, thresholds.lead.safe, thresholds.lead.caution)}
             trend="up"
             change={12.5}
             threshold={thresholds.lead}
           />
           <MonitoringCard
             title="Mercury (Hg)"
-            value={overallMetrics.mercury}
+            value={displayMetrics.mercury}
             unit="ppm"
-            status={getStatus(overallMetrics.mercury, thresholds.mercury.safe, thresholds.mercury.caution)}
+            status={getStatus(displayMetrics.mercury, thresholds.mercury.safe, thresholds.mercury.caution)}
             trend="stable"
             change={2.1}
             threshold={thresholds.mercury}
           />
           <MonitoringCard
             title="Cadmium (Cd)"
-            value={overallMetrics.cadmium}
+            value={displayMetrics.cadmium}
             unit="ppm"
-            status={getStatus(overallMetrics.cadmium, thresholds.cadmium.safe, thresholds.cadmium.caution)}
+            status={getStatus(displayMetrics.cadmium, thresholds.cadmium.safe, thresholds.cadmium.caution)}
             trend="down"
             change={5.3}
             threshold={thresholds.cadmium}
           />
           <MonitoringCard
             title="Arsenic (As)"
-            value={overallMetrics.arsenic}
+            value={displayMetrics.arsenic}
             unit="ppm"
-            status={getStatus(overallMetrics.arsenic, thresholds.arsenic.safe, thresholds.arsenic.caution)}
+            status={getStatus(displayMetrics.arsenic, thresholds.arsenic.safe, thresholds.arsenic.caution)}
             trend="up"
             change={8.7}
             threshold={thresholds.arsenic}
@@ -294,7 +394,9 @@ const Dashboard = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mb-8"
         >
-          <MonitoringMap stations={stations} height={600} />
+          <div className="max-w-2xl mx-auto">
+            <MonitoringMap stations={stations} height={400} onStationClick={handleStationClick} />
+          </div>
         </motion.div>
 
         {/* Water Quality Parameters Section */}
@@ -321,7 +423,7 @@ const Dashboard = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <WaterQualityCard
                 title="pH Level"
                 value={waterQualityMetrics.ph}
@@ -330,15 +432,6 @@ const Dashboard = () => {
                 trend={waterQualityMetrics.ph > 7.5 ? "up" : waterQualityMetrics.ph < 6.8 ? "down" : "stable"}
                 change={((waterQualityMetrics.ph - 7.0) / 7.0 * 100).toFixed(1)}
                 threshold={waterThresholds.ph}
-              />
-              <WaterQualityCard
-                title="Turbidity"
-                value={waterQualityMetrics.turbidity}
-                unit="NTU"
-                status={getWaterQualityStatus(waterQualityMetrics.turbidity, 'turbidity')}
-                trend={waterQualityMetrics.turbidity > 3 ? "up" : "stable"}
-                change={((waterQualityMetrics.turbidity / 5) * 100).toFixed(1)}
-                threshold={waterThresholds.turbidity}
               />
               <WaterQualityCard
                 title="Total Dissolved Solids"

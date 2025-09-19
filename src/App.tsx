@@ -58,7 +58,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   // const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'mock'>('mock');
 
   useEffect(() => {
@@ -96,16 +96,7 @@ function App() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading BioShield...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed global loading gate: render the app immediately while background connectivity checks run
 
   return (
     <ErrorBoundary>
