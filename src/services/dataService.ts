@@ -455,7 +455,13 @@ export class DataService {
     return 'safe';
   }
 
-  // ... (rest of the code remains the same)
+  // Get state from city name
+  private static getStateFromCity(city: string): string {
+    // Normalize city name for lookup
+    const normalized = city.toLowerCase().trim();
+    
+    // Handle common aliases
+    const aliasMap: Record<string, string> = {
       'allahabad': 'prayagraj'
     };
     const key = aliasMap[normalized] || normalized;
