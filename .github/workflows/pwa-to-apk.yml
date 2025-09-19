@@ -1,0 +1,66 @@
+name: PWA to APK Converter
+
+on:
+  workflow_dispatch:
+
+jobs:
+  convert-pwa-to-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies and build
+      run: |
+        npm install
+        npm run build
+        
+    - name: Deploy to temporary hosting
+      run: |
+        npm install -g surge
+        echo "bioshield-temp-$(date +%s).surge.sh" > CNAME
+        surge ./dist --domain $(cat CNAME)
+        echo "TEMP_URL=https://$(cat CNAME)" >> $GITHUB_ENV
+      env:
+        SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
+        SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+        
+    - name: Generate APK using PWABuilder
+      run: |
+        curl -X POST "https://pwabuilder-apk-web.azurewebsites.net/generateApk" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "BioShield Environmental Monitor",
+            "packageId": "com.bioshield.monitor",
+            "url": "'$TEMP_URL'",
+            "webManifestUrl": "'$TEMP_URL'/manifest.webmanifest",
+            "options": {
+              "packageId": "com.bioshield.monitor",
+              "name": "BioShield",
+              "launcherName": "BioShield",
+              "themeColor": "#1f2937",
+              "navigationColor": "#1f2937",
+              "backgroundColor": "#111827",
+              "startUrl": "/",
+              "iconUrl": "'$TEMP_URL'/favicon.ico"
+            }
+          }' \
+          -o apk_response.json
+          
+    - name: Download generated APK
+      run: |
+        DOWNLOAD_URL=$(cat apk_response.json | grep -o '"downloadUrl":"[^"]*"' | cut -d'"' -f4)
+        curl -L "$DOWNLOAD_URL" -o bioshield.apk
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: BioShield-PWA-APK
+        path: bioshield.apk
+        retention-days: 30

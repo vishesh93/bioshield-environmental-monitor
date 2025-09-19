@@ -1,0 +1,63 @@
+name: Build APK (Stable)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Setup Node 16
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        
+    - name: Install dependencies
+      run: |
+        npm install
+        npm run build
+        
+    - name: Setup JDK 11
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'adopt'
+        java-version: '11'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      
+    - name: Install Android components
+      run: |
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3"
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        
+    - name: Downgrade Capacitor to stable version
+      run: |
+        npm install @capacitor/core@4.8.1 @capacitor/cli@4.8.1 @capacitor/android@4.8.1
+        
+    - name: Re-add Android platform
+      run: |
+        rm -rf android
+        npx cap add android
+        
+    - name: Update Android config for compatibility
+      run: |
+        sed -i 's/compileSdk rootProject.ext.compileSdkVersion/compileSdk 30/' android/app/build.gradle
+        sed -i 's/targetSdkVersion rootProject.ext.targetSdkVersion/targetSdkVersion 30/' android/app/build.gradle
+        
+    - name: Sync and build
+      run: |
+        npx cap sync android
+        cd android
+        chmod +x gradlew
+        ./gradlew clean assembleDebug --stacktrace
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: BioShield-Stable-APK
+        path: android/app/build/outputs/apk/debug/app-debug.apk

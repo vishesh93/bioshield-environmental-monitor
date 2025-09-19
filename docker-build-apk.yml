@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  android-builder:
+    image: bitriseio/android:latest
+    working_dir: /app
+    volumes:
+      - .:/app
+      - gradle-cache:/root/.gradle
+    environment:
+      - ANDROID_HOME=/opt/android-sdk-linux
+      - GRADLE_OPTS=-Xmx2048m
+    command: >
+      bash -c "
+        echo 'Setting up Android APK build environment...' &&
+        npm install &&
+        npm run build &&
+        if [ ! -d android ]; then
+          npx cap add android
+        fi &&
+        npx cap sync android &&
+        cd android &&
+        chmod +x gradlew &&
+        ./gradlew assembleDebug &&
+        echo 'APK built successfully!' &&
+        echo 'APK location: android/app/build/outputs/apk/debug/app-debug.apk' &&
+        cp app/build/outputs/apk/debug/app-debug.apk /app/bioshield-debug.apk
+      "
+      
+volumes:
+  gradle-cache:
