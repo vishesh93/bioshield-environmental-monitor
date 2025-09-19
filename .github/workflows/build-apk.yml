@@ -3,8 +3,6 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -12,52 +10,64 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
+    - name: Setup Node.js 18
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm install
-      
-    - name: Build web app
+      run: |
+        npm install
+        npm install -g @capacitor/cli
+        
+    - name: Build web application
       run: npm run build
       
-    - name: Setup Java 17
+    - name: Setup JDK 17
       uses: actions/setup-java@v4
       with:
-        distribution: 'temurin'
         java-version: '17'
+        distribution: 'temurin'
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-      
-    - name: Accept Android SDK licenses
-      run: yes | sdkmanager --licenses || true
+      with:
+        api-level: 35
         
-    - name: Install Android SDK components
+    - name: Accept all Android SDK licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        
+    - name: Install required Android components
       run: |
-        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "cmdline-tools;latest"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
         
-    - name: Make gradlew executable
+    - name: Add Android platform to Capacitor
+      run: |
+        if [ ! -d "android" ]; then
+          npx cap add android
+        fi
+        
+    - name: Sync Capacitor project
+      run: npx cap sync android
+        
+    - name: Set gradlew permissions
       run: chmod +x android/gradlew
         
-    - name: Sync Capacitor
+    - name: Build APK
+      working-directory: android
       run: |
-        npx cap sync android
+        ./gradlew clean
+        ./gradlew assembleDebug --stacktrace --info
         
-    - name: Build Debug APK
-      run: |
-        cd android
-        ./gradlew assembleDebug --no-daemon --stacktrace
-        
-    - name: Upload Debug APK
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: bioshield-debug-apk
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        name: BioShield-Debug-APK
+        path: android/app/build/outputs/apk/debug/*.apk
         retention-days: 30
+        
+    - name: List APK files (for debugging)
+      run: find android/app/build/outputs/apk -name "*.apk" -type f
